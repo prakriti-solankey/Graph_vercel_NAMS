@@ -127,6 +127,12 @@ Fix anything red before moving on.
 npm run dev
 ```
 
+It asks first: **memory on or off?** Say off and the agent forgets you between
+chats. Say on and it asks **which mode** — `middleware`, `provider`, or `tools`
+which are custom tools (the MCP server). The pick applies to that run only; `.env` is left alone, and
+pressing Enter twice keeps whatever `MEMORY_MODE` is already in `.env`. In a
+non-interactive shell (CI) the prompt is skipped and `.env` wins.
+
 Open <http://localhost:3000>.
 
 ---
@@ -151,15 +157,16 @@ nodes it made.
 
 ## The four modes
 
-Change `MEMORY_MODE` in `.env`, restart `npm run dev`, and the chip in the
-app's header changes with it.
+Pick one at the `npm run dev` prompt (or set `MEMORY_MODE` in `.env` and just
+press Enter through it), and the chip in the app's header changes with it. The
+prompt calls `mcp` **tools**; the other three names match.
 
 | `MEMORY_MODE` | Who decides to remember | The code | Guide |
 |---|---|---|---|
 | `off` | nobody — it doesn't | — | — |
 | `provider` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | [docs/02](docs/02-mode-transparent.md) |
 | `middleware` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | [docs/02](docs/02-mode-transparent.md) |
-| `mcp` | the model, per turn | [`agent/connections/nams.ts`](agent/connections/nams.ts) | [docs/03](docs/03-mode-mcp.md) |
+| `tools` | the model, per turn | [`agent/connections/nams.ts`](agent/connections/nams.ts) | [docs/03](docs/03-mode-mcp.md) |
 
 `provider` and `middleware` both come from the
 [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider)
