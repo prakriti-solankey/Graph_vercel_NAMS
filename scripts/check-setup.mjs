@@ -19,19 +19,26 @@ if (major >= 20) {
   bad(`Node ${process.versions.node} is too old`, "Install Node 20 or newer from https://nodejs.org");
 }
 
-if (existsSync(".env.local")) {
-  ok(".env.local exists");
-  loadEnv(".env.local");
+if (existsSync(".env")) {
+  ok(".env exists");
+  loadEnv(".env");
 } else {
-  bad(".env.local is missing", "Run: cp .env.example .env.local — then fill in the two keys");
+  bad(".env is missing", "Run: cp .env.example .env — then fill in the two keys");
 }
 
 const openaiKey = process.env.OPENAI_API_KEY?.trim();
 const gatewayKey = process.env.AI_GATEWAY_API_KEY?.trim();
+const compatBaseUrl = process.env.OPENAI_COMPATIBLE_BASE_URL?.trim();
 const routing = (process.env.MODEL_ROUTING ?? "").trim().toLowerCase();
 
-if (routing && routing !== "openai" && routing !== "gateway") {
-  bad(`MODEL_ROUTING="${routing}" isn't valid`, "Use openai, gateway, or leave it blank");
+if (routing && routing !== "openai" && routing !== "gateway" && routing !== "openai-compatible") {
+  bad(`MODEL_ROUTING="${routing}" isn't valid`, "Use openai, gateway, openai-compatible, or leave it blank");
+} else if (routing === "openai-compatible" || (!routing && compatBaseUrl)) {
+  if (compatBaseUrl) {
+    ok(`OPENAI_COMPATIBLE_BASE_URL is set — model runs against ${compatBaseUrl}`);
+  } else {
+    bad("MODEL_ROUTING=openai-compatible but OPENAI_COMPATIBLE_BASE_URL is empty", "Add the base URL in .env");
+  }
 } else if (routing === "gateway" || (!routing && gatewayKey)) {
   if (gatewayKey) {
     ok("AI_GATEWAY_API_KEY is set — the model runs through Vercel AI Gateway");
@@ -45,7 +52,7 @@ if (routing && routing !== "openai" && routing !== "gateway") {
     bad("OPENAI_API_KEY doesn't look right (keys start with sk-)", "Copy it again from https://platform.openai.com/api-keys");
   }
 } else {
-  bad("No model key found", "Set OPENAI_API_KEY (or AI_GATEWAY_API_KEY) in .env.local");
+  bad("No model key found", "Set OPENAI_API_KEY (or AI_GATEWAY_API_KEY) in .env");
 }
 
 const mode = (process.env.MEMORY_MODE ?? "off").trim().toLowerCase();
@@ -75,13 +82,13 @@ if (mode === "off") {
   ok("MEMORY_API_KEY is set");
 }
 
-const user = process.env.WORKSHOP_USER_ID?.trim();
+const user = process.env.WORKSPACE_ID?.trim();
 if (mode === "off") {
-  note("WORKSHOP_USER_ID not checked — MEMORY_MODE=off stores nothing");
+  note("WORKSPACE_ID not checked — MEMORY_MODE=off stores nothing");
 } else if (user) {
-  ok(`Memories will be filed under "${user}"`);
+  ok(`Memories will be filed under workspace id "${user}"`);
 } else {
-  bad("WORKSHOP_USER_ID is empty", "Put your own name in .env.local so you get your own memory");
+  bad("WORKSPACE_ID is empty", "Put your own name in .env so you get your own memory");
 }
 
 if (failures === 0) {

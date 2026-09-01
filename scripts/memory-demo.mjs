@@ -3,9 +3,9 @@
 import { readFileSync } from "node:fs";
 import { MemoryClient } from "@neo4j-labs/agent-memory";
 
-loadEnv(".env.local");
+loadEnv(".env");
 
-const userId = process.env.WORKSHOP_USER_ID?.trim() || "workshop-student";
+const userId = process.env.WORKSPACE_ID?.trim();
 
 const memory = new MemoryClient({
   endpoint: process.env.MEMORY_ENDPOINT ?? "https://memory.neo4jlabs.com/v1",
@@ -63,7 +63,7 @@ try {
 
   if (/401|403|[Aa]uthentication/.test(message)) {
     console.error("  Your MEMORY_API_KEY is wrong, expired, or has a stray space.");
-    console.error("  Get a fresh one at https://memory.neo4jlabs.com and put it in .env.local.\n");
+    console.error("  Get a fresh one at https://memory.neo4jlabs.com and put it in .env.\n");
   } else if (/fetch|ENOTFOUND|ECONNREFUSED|timeout/i.test(message)) {
     console.error("  Couldn't reach the memory service. Check your internet — campus");
     console.error("  networks sometimes block it. A phone hotspot is a good test.\n");
@@ -82,7 +82,7 @@ function loadEnv(file) {
       if (value) process.env[match[1]] ??= value;
     }
   } catch {
-    console.error("\n  Couldn't read .env.local. Run `cp .env.example .env.local` first.\n");
+    console.error("\n  Couldn't read .env. Run `cp .env.example .env` first.\n");
     process.exit(1);
   }
 }

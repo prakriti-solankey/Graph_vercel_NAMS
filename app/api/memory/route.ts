@@ -13,7 +13,7 @@ export async function GET(request: Request): Promise<Response> {
 
   if (!process.env.MEMORY_API_KEY) {
     return Response.json(
-      { error: 'MEMORY_API_KEY is not set. Copy .env.example to .env.local and paste your key.' },
+      { error: 'MEMORY_API_KEY is not set. Copy .env.example to .env and paste your key.' },
       { status: 503 },
     );
   }

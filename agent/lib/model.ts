@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI, openai } from "@ai-sdk/openai";
 import type { LanguageModelV4 } from "@ai-sdk/provider";
 import { createNams, createNamsProvider } from "@neo4j-labs/nams-ai-provider";
 import { gateway } from "ai";
@@ -16,15 +16,23 @@ function hasGatewayCredential(): boolean {
   );
 }
 
-export const MODEL_ROUTING: "gateway" | "openai" = (() => {
+export const MODEL_ROUTING: "gateway" | "openai" | "openai-compatible" = (() => {
   const explicit = process.env.MODEL_ROUTING?.trim().toLowerCase();
-  if (explicit === "gateway" || explicit === "openai") return explicit;
+  if (explicit === "gateway" || explicit === "openai" || explicit === "openai-compatible") return explicit;
+  if (process.env.OPENAI_COMPATIBLE_BASE_URL?.trim()) return "openai-compatible";
   return process.env.OPENAI_API_KEY && !hasGatewayCredential() ? "openai" : "gateway";
 })();
 
 export function baseModel(id: string = MODEL_ID): LanguageModelV4 {
   if (MODEL_ROUTING === "openai") {
     return openai(id.replace(/^openai\//, "")) as LanguageModelV4;
+  }
+  if (MODEL_ROUTING === "openai-compatible") {
+    const provider = createOpenAI({
+      baseURL: process.env.OPENAI_COMPATIBLE_BASE_URL!,
+      apiKey: process.env.OPENAI_COMPATIBLE_API_KEY || "not-needed",
+    });
+    return provider(id) as LanguageModelV4;
   }
   return gateway(id) as LanguageModelV4;
 }

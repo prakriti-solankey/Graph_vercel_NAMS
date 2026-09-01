@@ -4,7 +4,7 @@
  * The same graph reached over MCP — supplies get-schema / read-cypher /
  * list-gds-procedures. Credentials default to the public "companies" demo
  * so the agent works out of the box; set MCP_URL / MCP_NEO4J_USERNAME /
- * MCP_NEO4J_PASSWORD in .env.local to point at your own database.
+ * MCP_NEO4J_PASSWORD in .env to point at your own database.
  */
 
 const DEFAULT_MCP_URL =

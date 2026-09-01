@@ -89,7 +89,7 @@ You need **Node 20 or newer** (`node -v`) and about five minutes.
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 ### Required
@@ -98,7 +98,7 @@ cp .env.example .env.local
 |---|---|---|
 | `OPENAI_API_KEY` | lets the agent think | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | `MEMORY_API_KEY` | lets the agent remember — **only needed once `MEMORY_MODE` is not `off`** | [memory.neo4jlabs.com](https://memory.neo4jlabs.com) (free, starts with `nams_`) |
-| `WORKSHOP_USER_ID` | whose memory this is — **put your own name here** so you don't share a brain with the person next to you | you |
+| `WORKSPACE_ID` | whose memory this is — **put your own name here** so you don't share a brain with the person next to you | you |
 
 ### Optional
 
@@ -109,7 +109,6 @@ cp .env.example .env.local
 | `MODEL_ROUTING` | auto | Force `openai` or `gateway`. Left blank, OpenAI wins when its key is set and no gateway credential is present. |
 | `AGENT_MODEL` | `openai/gpt-5.4-mini` | Which model answers. Try `anthropic/claude-sonnet-5` on the gateway route. |
 | `AGENT_MODEL_CONTEXT_TOKENS` | `400000` | The model's context window. Lower it if you switch to a smaller model. |
-| `MEMORY_WORKSPACE_ID` | — | Pin to one NAMS workspace instead of the key's default. |
 | `MEMORY_ENDPOINT` | `https://memory.neo4jlabs.com/v1` | Point at your own NAMS server. |
 | `MEMORY_MCP_URL` | `https://memory.neo4jlabs.com/mcp` | Point at your own NAMS MCP server. |
 
@@ -141,7 +140,7 @@ Start with `MEMORY_MODE=off` — the default — and watch it fail.
 2. Click **New chat**.
 3. *"What am I working on?"*
 
-It has no idea. Now set `MEMORY_MODE=provider` in `.env.local`, restart, and do
+It has no idea. Now set `MEMORY_MODE=provider` in `.env`, restart, and do
 the same three steps.
 
 It knows. Open the **Agent Memory** panel above the answer to see exactly what
@@ -152,7 +151,7 @@ nodes it made.
 
 ## The four modes
 
-Change `MEMORY_MODE` in `.env.local`, restart `npm run dev`, and the chip in the
+Change `MEMORY_MODE` in `.env`, restart `npm run dev`, and the chip in the
 app's header changes with it.
 
 | `MEMORY_MODE` | Who decides to remember | The code | Guide |
