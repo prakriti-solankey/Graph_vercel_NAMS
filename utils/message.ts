@@ -34,7 +34,11 @@ export function toolStateLabel(part: EveDynamicToolPart): string {
     case 'approval-requested':
       return 'waiting for approval';
     case 'approval-responded':
-      return 'approved';
+      return part.approval.approved === true
+        ? 'approved'
+        : part.approval.approved === false
+          ? 'denied'
+          : 'approval received';
     case 'output-available':
       return part.partial ? 'streaming…' : 'done';
     case 'output-error':
