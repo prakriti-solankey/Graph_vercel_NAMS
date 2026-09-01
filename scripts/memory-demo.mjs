@@ -21,11 +21,15 @@ try {
   console.log(`  1. Conversation ${conversation.id}`);
   console.log(`     ${existing.length > 0 ? "reused an existing one" : "created a new one"}`);
 
-  await memory.shortTerm.bulkAddMessages(conversation.id, [
-    { role: "user", content: "I'm building a robotics club project at my college with my friend Aditya." },
-    { role: "assistant", content: "A robotics club project with Aditya — noted. What are you building?" },
-  ]);
-  console.log("  2. Stored two messages");
+  if (existing.length === 0) {
+    await memory.shortTerm.bulkAddMessages(conversation.id, [
+      { role: "user", content: "I'm building a robotics club project at my college with my friend Aditya." },
+      { role: "assistant", content: "A robotics club project with Aditya — noted. What are you building?" },
+    ]);
+    console.log("  2. Stored two messages");
+  } else {
+    console.log("  2. Reused the existing messages");
+  }
 
   const entity = await memory.longTerm.addEntity("Aditya", "person", {
     description: `A friend of ${userId}, working with them on a college robotics project.`,
