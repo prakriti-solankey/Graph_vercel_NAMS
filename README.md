@@ -60,7 +60,7 @@ does them* — the library, or the model itself.
 
 ## Why Vercel
 
-Three reasons this is built on Vercel's stack rather than a general framework.
+Four reasons this is built on Vercel's stack rather than a general framework.
 
 **eve makes the agent a folder.** Tools, instructions, channels and connections
 are files in `agent/`. There is no registry to update and nothing to import.
