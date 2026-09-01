@@ -98,7 +98,7 @@ cp .env.example .env
 |---|---|---|
 | `OPENAI_API_KEY` | lets the agent think | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | `MEMORY_API_KEY` | lets the agent remember — **only needed once `MEMORY_MODE` is not `off`** | [memory.neo4jlabs.com](https://memory.neo4jlabs.com) (free, starts with `nams_`) |
-| `WORKSPACE_ID` | whose memory this is — **put your own name here** so you don't share a brain with the person next to you | you |
+| `WORKSPACE_ID` | to remember the user workspace | [memory.neo4jlabs.com](https://memory.neo4jlabs.com) (workspace_id) |
 
 ### Optional
 
@@ -246,20 +246,8 @@ agent and the same memory in your terminal for a fraction of that.
 
 ---
 
-## Documentation
-
-| | |
-|---|---|
-| [00 · Workshop guide](docs/00-workshop-guide.md) | run-of-show for whoever is teaching |
-| [01 · Setup](docs/01-setup.md) | the long version of the steps above |
-| [02 · Modes: provider & middleware](docs/02-mode-transparent.md) | memory the model can't see |
-| [03 · Mode: mcp](docs/03-mode-mcp.md) | memory over Model Context Protocol |
-| [04 · Adding a tool](docs/04-adding-a-tool.md) | how `get_weather.ts` works, and how to write your own |
-| [05 · Troubleshooting](docs/05-troubleshooting.md) | when it breaks |
-
 ## Reference
 
 - [eve docs](https://eve.dev/docs) · [AI SDK](https://ai-sdk.dev) · [Neo4j Agent Memory docs](https://neo4j.com/labs/agent-memory/)
 - [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider) — the provider and middleware this workshop uses
 - [`@neo4j-labs/agent-memory`](https://www.npmjs.com/package/@neo4j-labs/agent-memory) — the client underneath it
-- Built after [neo4j-labs/neo4j-agent-integrations/vercel-agent](https://github.com/neo4j-labs/neo4j-agent-integrations/tree/main/vercel-agent)
