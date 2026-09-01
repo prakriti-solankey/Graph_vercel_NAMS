@@ -8,7 +8,7 @@ import { chip, footnote, panelHeader, panelTitle } from './styles';
 
 const HOW: Record<MemoryMode, string> = {
   provider:
-    'createNamsProvider() wrapped the whole AI Gateway provider. Memory was injected before the model thought and saved after it answered — it never saw a memory tool.',
+    'createNamsProvider() wrapped the selected model provider. Memory was injected before the model thought and saved after it answered — it never saw a memory tool.'
   middleware:
     'createNams().wrap() wrapped this one model. Memory was injected before the model thought and saved after it answered — it never saw a memory tool.',
   mcp: 'The model chose which memory tools to call, from the twelve the hosted MCP server advertised.',
