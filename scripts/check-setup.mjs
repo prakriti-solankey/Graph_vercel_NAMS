@@ -32,7 +32,7 @@ const routing = (process.env.MODEL_ROUTING ?? "").trim().toLowerCase();
 
 if (routing && routing !== "openai" && routing !== "gateway") {
   bad(`MODEL_ROUTING="${routing}" isn't valid`, "Use openai, gateway, or leave it blank");
-} else if (routing === "gateway" || (!routing && !openaiKey && gatewayKey)) {
+} else if (routing === "gateway" || (!routing && gatewayKey)) {
   if (gatewayKey) {
     ok("AI_GATEWAY_API_KEY is set — the model runs through Vercel AI Gateway");
   } else {
