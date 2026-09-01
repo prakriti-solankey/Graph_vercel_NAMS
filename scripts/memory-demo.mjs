@@ -49,7 +49,7 @@ try {
   observations fill in over the next minute or two. Run this again
   and watch the numbers change.
 
-  See the graph itself: https:
+  See the graph itself: https://memory.neo4jlabs.com
   Next: npm run dev
 `);
 } catch (error) {
