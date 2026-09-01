@@ -14,7 +14,7 @@ interface ChatShellProps {
 }
 
 export default function ChatShell({ mode, sessionId }: ChatShellProps) {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
