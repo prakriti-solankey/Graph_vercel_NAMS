@@ -51,7 +51,7 @@ export function toolOutputText(part: EveDynamicToolPart): string | null {
   if (part.state !== 'output-available') return null;
   const out = part.output;
   if (out == null) return null;
-  return typeof out === 'string' ? out : JSON.stringify(out, null, 2);
+  return typeof out === 'string' ? out : (JSON.stringify(out, null, 2) ?? String(out));
 }
 
 export function emptySnapshot(): MemorySnapshot {
