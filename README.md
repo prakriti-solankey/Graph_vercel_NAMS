@@ -161,12 +161,12 @@ Pick one at the `npm run dev` prompt (or set `MEMORY_MODE` in `.env` and just
 press Enter through it), and the chip in the app's header changes with it. The
 prompt calls `mcp` **tools**; the other three names match.
 
-| `MEMORY_MODE` | Who decides to remember | The code | Guide |
+| `MEMORY_MODE` | Who decides to remember | The code |  |
 |---|---|---|---|
-| `off` | nobody — it doesn't | — | — |
-| `provider` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | [docs/02](docs/02-mode-transparent.md) |
-| `middleware` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | [docs/02](docs/02-mode-transparent.md) |
-| `tools` | the model, per turn | [`agent/connections/nams.ts`](agent/connections/nams.ts) | [docs/03](docs/03-mode-mcp.md) |
+| `off` | nobody — it doesn't | — |
+| `provider` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | |
+| `middleware` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | |
+| `tools` | the model, per turn | [`agent/connections/nams.ts`](agent/connections/nams.ts) | |
 
 `provider` and `middleware` both come from the
 [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider)
