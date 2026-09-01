@@ -41,6 +41,7 @@ const web = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev
 children.push(web);
 
 web.on("exit", (code) => shutdown(code ?? 0));
+agent.on("exit", (code) => shutdown(code ?? 1));
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => shutdown(0));
