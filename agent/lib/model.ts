@@ -1,0 +1,48 @@
+import { openai } from "@ai-sdk/openai";
+import type { LanguageModelV4 } from "@ai-sdk/provider";
+import { createNams, createNamsProvider } from "@neo4j-labs/nams-ai-provider";
+import { gateway } from "ai";
+import { memoryMode, namsConfig, namsScope } from "./nams";
+
+export const MODEL_ID = process.env.AGENT_MODEL?.trim() || "openai/gpt-5.4-mini";
+
+export const CONTEXT_WINDOW_TOKENS = Number(
+  process.env.AGENT_MODEL_CONTEXT_TOKENS?.trim() || 400_000,
+);
+
+function hasGatewayCredential(): boolean {
+  return Boolean(
+    process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL,
+  );
+}
+
+export const MODEL_ROUTING: "gateway" | "openai" = (() => {
+  const explicit = process.env.MODEL_ROUTING?.trim().toLowerCase();
+  if (explicit === "gateway" || explicit === "openai") return explicit;
+  return process.env.OPENAI_API_KEY && !hasGatewayCredential() ? "openai" : "gateway";
+})();
+
+export function baseModel(id: string = MODEL_ID): LanguageModelV4 {
+  if (MODEL_ROUTING === "openai") {
+    return openai(id.replace(/^openai\//, "")) as LanguageModelV4;
+  }
+  return gateway(id) as LanguageModelV4;
+}
+
+export function resolveModel(): LanguageModelV4 {
+  const mode = memoryMode();
+
+  if (mode === "provider") {
+    return createNamsProvider({
+      ...namsConfig(),
+      baseProvider: (modelId: string) => baseModel(modelId),
+      scope: namsScope(),
+    }).languageModel(MODEL_ID) as LanguageModelV4;
+  }
+
+  if (mode === "middleware") {
+    return createNams(namsConfig()).wrap(baseModel(), namsScope());
+  }
+
+  return baseModel();
+}
