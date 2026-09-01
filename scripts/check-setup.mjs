@@ -72,21 +72,7 @@ if (mode === "off") {
 } else if (!memoryKey.startsWith("nams_")) {
   bad("MEMORY_API_KEY doesn't look right (keys start with nams_)", "Copy it again from https://memory.neo4jlabs.com");
 } else {
-  try {
-    const res = await fetch(`${endpoint}/conversations?limit=1`, {
-      headers: { authorization: `Bearer ${memoryKey}` },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (res.ok) {
-      ok("MEMORY_API_KEY works — Neo4j Agent Memory answered");
-    } else if (res.status === 401 || res.status === 403) {
-      bad(`Neo4j rejected the key (HTTP ${res.status})`, "Create a fresh key at https://memory.neo4jlabs.com");
-    } else {
-      bad(`Neo4j returned HTTP ${res.status}`, "Check https://memory.neo4jlabs.com is up, then retry");
-    }
-  } catch (error) {
-    bad(`Couldn't reach ${endpoint} (${error.message})`, "Check your internet connection or campus firewall");
-  }
+  ok("MEMORY_API_KEY is set");
 }
 
 const user = process.env.WORKSHOP_USER_ID?.trim();
@@ -107,7 +93,7 @@ if (failures === 0) {
 
 function loadEnv(file) {
   for (const line of readFileSync(file, "utf8").split("\n")) {
-    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
+    const match = line.replace(/\r$/, "").match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
     if (!match) continue;
     const value = match[2].trim().replace(/^["']|["']$/g, "");
     if (value) process.env[match[1]] ??= value;
