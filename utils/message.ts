@@ -60,8 +60,8 @@ export function toolOutputText(part: EveDynamicToolPart): string | null {
 
 export function emptySnapshot(): MemorySnapshot {
   return {
-    counts: { recent: 0, observations: 0, insights: 0, entities: 0 },
-    items: { recent: [], observations: [], insights: [], entities: [] },
+    counts: { recent: 0, observations: 0, insights: 0, entities: 0, reasoning: 0 },
+    items: { recent: [], observations: [], insights: [], entities: [], reasoning: [] },
   };
 }
 

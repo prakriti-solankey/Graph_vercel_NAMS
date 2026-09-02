@@ -11,9 +11,27 @@ const HOW: Record<MemoryMode, string> = {
     'createNamsProvider() wrapped the selected model provider. Memory was injected before the model thought and saved after it answered — it never saw a memory tool.',
   middleware:
     'createNams().wrap() wrapped this one model. Memory was injected before the model thought and saved after it answered — it never saw a memory tool.',
-  mcp: 'The model chose which memory tools to call, from the twelve the hosted MCP server advertised.',
+  tools:
+    'The model drove memory itself, calling query_memory and store_memory — the two tools createNamsMemoryTools() adds from the @neo4j-labs/nams-ai-provider package.',
+  hooks:
+    'The runtime drove memory, not the model. A dynamic instruction recalled on turn.started and a hook stored the exchange on turn.completed, so it happened whether the model wanted it or not.',
   off: 'Memory is switched off. Nothing was recalled and nothing was saved.',
 };
+
+function driver(mode: MemoryMode, toolCalls: number, reasoningSteps: number): string | null {
+  switch (mode) {
+    case 'tools':
+      return toolCalls > 0 ? `model called ${toolCalls} memory tool${toolCalls === 1 ? '' : 's'}` : 'model called no memory tool';
+    case 'hooks':
+      return reasoningSteps > 0 ? `runtime · ${reasoningSteps} reasoning step${reasoningSteps === 1 ? '' : 's'}` : 'runtime · turn.started + turn.completed';
+    case 'provider':
+      return 'wrapped provider · never a tool call';
+    case 'middleware':
+      return 'wrapped model · never a tool call';
+    default:
+      return null;
+  }
+}
 
 interface MemoryPanelProps {
   mode: MemoryMode;
@@ -39,10 +57,10 @@ export default function MemoryPanel({
   const counts = snapshot?.counts;
   const total = counts ? MEMORY_TABS.reduce((sum, tab) => sum + counts[tab.id], 0) : 0;
 
+  const drove = driver(mode, toolCalls.length, counts?.reasoning ?? 0);
   const isPending = mode !== 'off' && (isLive || Boolean(snapshot?.loading));
   const canExpand = total > 0 || Boolean(snapshot?.error);
-
-  if (!canExpand && !isPending && toolCalls.length === 0) return null;
+  if (!drove && !canExpand && !isPending && toolCalls.length === 0) return null;
 
   const shownTab = counts && counts[activeTab] === 0
     ? (MEMORY_TABS.find((tab) => counts[tab.id] > 0)?.id ?? activeTab)
@@ -73,13 +91,18 @@ export default function MemoryPanel({
           counts && counts[tab.id] > 0 ? (
             <span
               key={tab.id}
-              style={{ ...chip(tab.id === 'entities' ? 'success' : 'info'), cursor: 'pointer' }}
+              style={{
+                ...chip(tab.id === 'entities' ? 'success' : tab.id === 'reasoning' ? 'warning' : 'info'),
+                cursor: 'pointer',
+              }}
               onClick={(event) => handleChipClick(event, tab.id)}
             >
               {counts[tab.id]} {tab.label}
             </span>
           ) : null,
         )}
+
+        {drove && <span style={{ ...chip('neutral'), marginLeft: 'auto' }}>{drove}</span>}
 
         {snapshot?.error && <span style={chip('warning')}>unavailable</span>}
         {isPending && total === 0 && !snapshot?.error && (

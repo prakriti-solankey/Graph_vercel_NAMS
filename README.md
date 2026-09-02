@@ -23,7 +23,7 @@ that link to each other. That is
 [Neo4j Agent Memory](https://neo4j.com/labs/agent-memory/) (NAMS).
 
 The workshop is the comparison: the same agent, wired to the same memory, in
-**three different ways** — plus `off`, so you can see what it's like without.
+**four different ways** — plus `off`, so you can see what it's like without.
 
 ---
 
@@ -54,7 +54,8 @@ In plain language:
    projects mentioned and links them into the graph.
 
 Steps 2 and 4 are the whole trick, and switching `MEMORY_MODE` changes *who
-does them* — the library, or the model itself.
+does them* — the library invisibly (`provider`, `middleware`), the model itself
+through tools (`tools`), or the eve runtime on every turn (`hooks`).
 
 ---
 
@@ -104,13 +105,12 @@ cp .env.example .env
 
 | Variable | Default | What it does |
 |---|---|---|
-| `MEMORY_MODE` | `off` | Which memory integration is live. See [the four modes](#the-four-modes). |
+| `MEMORY_MODE` | `off` | Which memory integration is live. See [the five modes](#the-five-modes). |
 | `AI_GATEWAY_API_KEY` | — | Use Vercel AI Gateway instead of OpenAI directly. One key, every model. |
 | `MODEL_ROUTING` | auto | Force `openai` or `gateway`. Left blank, OpenAI wins when its key is set and no gateway credential is present. |
 | `AGENT_MODEL` | `openai/gpt-5.4-mini` | Which model answers. Try `anthropic/claude-sonnet-5` on the gateway route. |
 | `AGENT_MODEL_CONTEXT_TOKENS` | `400000` | The model's context window. Lower it if you switch to a smaller model. |
 | `MEMORY_ENDPOINT` | `https://memory.neo4jlabs.com/v1` | Point at your own NAMS server. |
-| `MEMORY_MCP_URL` | `https://memory.neo4jlabs.com/mcp` | Point at your own NAMS MCP server. |
 
 ### Check it
 
@@ -128,10 +128,11 @@ npm run dev
 ```
 
 It asks first: **memory on or off?** Say off and the agent forgets you between
-chats. Say on and it asks **which mode** — `middleware`, `provider`, or `tools`
-which are custom tools (the MCP server). The pick applies to that run only; `.env` is left alone, and
-pressing Enter twice keeps whatever `MEMORY_MODE` is already in `.env`. In a
-non-interactive shell (CI) the prompt is skipped and `.env` wins.
+chats. Say on and it asks **which mode** — `middleware`, `provider`, `tools`
+(the model calls `query_memory` / `store_memory` itself) or `hooks` (the runtime
+remembers on every turn). The pick applies to that run only; `.env` is left
+alone, and pressing Enter twice keeps whatever `MEMORY_MODE` is already in
+`.env`. In a non-interactive shell (CI) the prompt is skipped and `.env` wins.
 
 Open <http://localhost:3000>.
 
@@ -155,24 +156,40 @@ nodes it made.
 
 ---
 
-## The four modes
+## The five modes
 
 Pick one at the `npm run dev` prompt (or set `MEMORY_MODE` in `.env` and just
-press Enter through it), and the chip in the app's header changes with it. The
-prompt calls `mcp` **tools**; the other three names match.
+press Enter through it), and the chip in the app's header changes with it.
 
 | `MEMORY_MODE` | Who decides to remember | The code |  |
 |---|---|---|---|
 | `off` | nobody — it doesn't | — |
 | `provider` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | |
 | `middleware` | nobody — it always happens | [`agent/lib/model.ts`](agent/lib/model.ts) | |
-| `tools` | the model, per turn | [`agent/connections/nams.ts`](agent/connections/nams.ts) | |
+| `tools` | the model, per turn | [`agent/tools/memory.ts`](agent/tools/memory.ts) | |
+| `hooks` | the eve runtime, every turn | [`agent/hooks/`](agent/hooks/), [`agent/instructions/memory.ts`](agent/instructions/memory.ts) | |
 
-`provider` and `middleware` both come from the
+Every non-`off` mode is the same
 [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider)
-package and behave identically — one wraps the whole model *provider*, the other
-wraps a single *model*. `mcp` uses no package at all: just a URL and a key, with
-the tool list published by the server.
+package, wired in at a different layer:
+
+- **`provider` / `middleware`** wrap the model. One wraps the whole model
+  *provider*, the other a single *model*; both are invisible to the model, which
+  never sees a memory tool.
+- **`tools`** hands the model `query_memory` and `store_memory` and lets it
+  decide. Every call shows up in the **Reasoning Trace** — and so does every
+  turn it forgets to call them.
+- **`hooks`** attaches memory to eve's own turn events, where the model has no
+  say. [`agent/instructions/memory.ts`](agent/instructions/memory.ts) recalls on
+  `turn.started` and pastes what it finds into the prompt;
+  [`agent/hooks/persist-turn.ts`](agent/hooks/persist-turn.ts) stores the
+  exchange on `turn.completed`; and
+  [`agent/hooks/persist-reasoning.ts`](agent/hooks/persist-reasoning.ts) records
+  *why* — each reasoning step with the tool calls it made. All three go through
+  one file, [`agent/lib/memory-gateway.ts`](agent/lib/memory-gateway.ts).
+
+A hook that throws fails the whole turn, so every write is wrapped in
+`try`/`catch`: if NAMS is down, the user still gets their answer.
 
 ---
 
@@ -184,11 +201,18 @@ agent/                       the agent itself
 ├── instructions.md          the system prompt, in plain English
 ├── lib/
 │   ├── nams.ts              config: which mode, whose memory, which server
+│   ├── memory-gateway.ts    the only file that calls the NAMS SDK
 │   └── model.ts             builds the model, wrapping it with memory
+├── instructions/
+│   └── memory.ts            the `hooks` mode, recall — runs on turn.started
+├── hooks/
+│   ├── persist-turn.ts      the `hooks` mode, store — runs on turn.completed
+│   └── persist-reasoning.ts the `hooks` mode, the why-trail
 ├── connections/
-│   └── nams.ts              the MCP mode — a URL and a key
+│   └── neo4j-graph.ts       the Neo4j knowledge graph, over MCP (mounted only when reachable)
 ├── tools/
-│   └── get_weather.ts       an example tool that has nothing to do with memory
+│   ├── memory.ts            the `tools` mode — query_memory / store_memory from the package
+│   └── search_news.ts       an example tool that has nothing to do with memory
 └── channels/
     └── eve.ts               who is allowed to talk to the agent
 
@@ -202,10 +226,14 @@ is about forty lines.
 
 ### The example tool
 
-[`agent/tools/get_weather.ts`](agent/tools/get_weather.ts) exists to show what a
-tool looks like when it isn't about memory. Ask *"what's the weather in
-Bengaluru?"* and watch it appear in the **Reasoning Trace** panel. It needs no
-API key.
+[`agent/tools/search_news.ts`](agent/tools/search_news.ts) exists to show what a
+tool looks like when it isn't about memory. It runs a full-text query over the
+public "Company News" graph — the article text the Neo4j MCP connection has no
+tool for — through the Bolt route in
+[`agent/lib/neo4j.ts`](agent/lib/neo4j.ts). Ask *"what's been written about
+graph database funding?"* and watch it appear in the **Reasoning Trace** panel.
+It needs no API key; the defaults point at `demo.neo4jlabs.com`, overridable
+with `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE`.
 
 Copy it, rename the file, and you have a new tool — that is the whole extension
 story.
@@ -216,16 +244,65 @@ story.
 
 Two panels sit above every answer.
 
-**Agent Memory** shows what the graph actually held, in four tabs: `recent`,
-`observations`, `insights` and `entities`. It reads Neo4j directly through
-[`app/api/memory/route.ts`](app/api/memory/route.ts) rather than watching for
-tool calls, which is what makes it work in *every* mode — in `provider` and
-`middleware` the model never calls a memory tool, so there would otherwise be
-nothing to show.
+**Agent Memory** shows what the graph actually held, in five tabs: `recent`,
+`observations`, `insights`, `entities` and `reasoning`. It reads Neo4j directly
+through [`app/api/memory/route.ts`](app/api/memory/route.ts) rather than
+watching for tool calls, which is what makes it work in *every* mode — in
+`provider`, `middleware` and `hooks` the model never calls a memory tool, so
+there would otherwise be nothing to show.
+
+Its header also carries a badge naming **what drove memory on this turn**,
+which is how you tell the modes apart at a glance:
+
+| Mode | Badge |
+|---|---|
+| `provider` | `wrapped provider · never a tool call` |
+| `middleware` | `wrapped model · never a tool call` |
+| `tools` | `model called 2 memory tools` — or `called no memory tool`, on the turns it forgets |
+| `hooks` | `runtime · 3 reasoning steps` |
+
+The `reasoning` tab is the one only `hooks` fills: it is the decision trail
+[`agent/hooks/persist-reasoning.ts`](agent/hooks/persist-reasoning.ts) writes —
+one record per model step with the tools that step called. Every other mode
+leaves it empty, which is the difference made visible.
 
 **Reasoning Trace** shows the agent's own steps: its thinking, and every tool
-call with its input and result. It is empty in `provider` and `middleware`, and
-full in `mcp`. That contrast is the workshop, made visible.
+call with its input and result. In `tools` mode `query_memory` and
+`store_memory` show up in full — including the turns the model forgot to call
+them. In `provider`, `middleware` and `hooks` memory never appears here at all,
+because it happens around the model rather than as a tool. That contrast is the
+workshop, made visible.
+
+---
+
+## Evals
+
+`npm run eval` starts a throwaway agent and drives it like a user, then asserts
+on what it produced. Two cases live in [`evals/`](evals/):
+
+| Eval | What it pins down |
+|---|---|
+| [`memory/cross-session-recall`](evals/memory/cross-session-recall.eval.ts) | **the load-bearing one.** States a fact, calls `t.newSession()` to throw the transcript away, and asks again in a fresh session. Anything recalled after that came out of NAMS, not the conversation. Skips itself when `MEMORY_MODE=off`. |
+| [`graph/news-search`](evals/graph/news-search.eval.ts) | a company question reaches `search_news` rather than being answered from model recall or a web search. |
+
+```bash
+npm run eval                       # everything
+npm run eval -- --tag memory       # one tag
+npm run eval -- --list             # show what would run
+MEMORY_MODE=tools npm run eval     # pin the mode for the run
+```
+
+The recall eval passes in `provider`, `middleware`, `tools` and `hooks`. It is
+worth running it in each: they all reach the same graph, and the eval is the
+only thing that proves it.
+
+Two notes if you write more:
+
+- **Retrieval is lexical.** A shared workshop workspace fills with near-identical
+  turns, so assert on a distinctive word (the eval uses a project *codename*),
+  not a phrase like "final year project" that every earlier run also contains.
+- The judge model comes from [`evals/evals.config.ts`](evals/evals.config.ts);
+  override it with `EVAL_JUDGE_MODEL`.
 
 ---
 
@@ -237,6 +314,7 @@ full in `mcp`. That contrast is the workshop, made visible.
 | `npm run demo` | memory on its own, twenty lines, no agent |
 | `npm run dev` | the chat app at localhost:3000 |
 | `npm run chat` | the same agent in your terminal, no browser |
+| `npm run eval` | run the evals (see below) |
 | `npm run typecheck` | catch mistakes before running |
 | `npm run deploy` | put it on Vercel |
 
@@ -249,5 +327,5 @@ agent and the same memory in your terminal for a fraction of that.
 ## Reference
 
 - [eve docs](https://eve.dev/docs) · [AI SDK](https://ai-sdk.dev) · [Neo4j Agent Memory docs](https://neo4j.com/labs/agent-memory/)
-- [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider) — the provider and middleware this workshop uses
+- [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider) — every non-`off` mode is built on this one package
 - [`@neo4j-labs/agent-memory`](https://www.npmjs.com/package/@neo4j-labs/agent-memory) — the client underneath it

@@ -16,7 +16,8 @@ let shuttingDown = false;
 const MEMORY_CHOICES = [
   { key: "1", label: "middleware", mode: "middleware", blurb: "createNams().wrap() — memory the model can't see" },
   { key: "2", label: "provider", mode: "provider", blurb: "createNamsProvider() — same, one level up" },
-  { key: "3", label: "tools", mode: "mcp", blurb: "hosted MCP server — the model decides, per turn" },
+  { key: "3", label: "tools", mode: "tools", blurb: "createNamsMemoryTools() — the model calls query_memory / store_memory itself" },
+  { key: "4", label: "hooks", mode: "hooks", blurb: "eve hooks + dynamic instructions — the runtime remembers, the model has no say" },
 ];
 
 // Pick memory on/off (and which mode) for this run instead of hand-editing
@@ -117,7 +118,9 @@ async function chooseMemoryMode() {
   const fromEnv = (process.env.MEMORY_MODE ?? readEnvVar(".env", "MEMORY_MODE") ?? "off")
     .trim()
     .toLowerCase();
-  const current = ["off", "provider", "middleware", "mcp"].includes(fromEnv) ? fromEnv : "off";
+  const current = ["off", "provider", "middleware", "tools", "hooks"].includes(fromEnv)
+    ? fromEnv
+    : "off";
 
   // No prompt without a terminal (CI, piped input) — honour .env as-is.
   if (!stdin.isTTY) return current;
@@ -139,7 +142,7 @@ async function chooseMemoryMode() {
       const here = c === currentChoice ? "  ← current" : "";
       console.log(`    ${c.key}) ${c.label.padEnd(10)} ${c.blurb}${here}`);
     }
-    const pick = await ask(`\n  Pick 1-3 or a name [${currentChoice.label}] `);
+    const pick = await ask(`\n  Pick 1-4 or a name [${currentChoice.label}] `);
     if (pick === null || pick === "") return currentChoice.mode;
 
     const chosen = MEMORY_CHOICES.find((c) => c.key === pick || c.label === pick || c.mode === pick);
