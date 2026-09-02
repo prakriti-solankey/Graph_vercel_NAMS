@@ -10,6 +10,7 @@
   "scripts": {
     "check": "node scripts/check-setup.mjs",
     "demo": "node scripts/memory-demo.mjs",
+    "mcp": "tsx mcp-server/src/server.ts",
     "dev": "node scripts/dev.mjs",
     "chat": "eve dev",
     "build": "next build",
@@ -23,6 +24,7 @@
     "@ai-sdk/gateway": "^4.0.70",
     "@ai-sdk/mcp": "^2.0.34",
     "@ai-sdk/openai": "^4.0.53",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@neo4j-labs/agent-memory": "^0.4.1",
     "@neo4j-labs/nams-ai-provider": "^0.2.1",
     "@neo4j-ndl/base": "^4.17.7",
@@ -41,6 +43,7 @@
     "@types/node": "24.x",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
+    "tsx": "^4.23.13",
     "typescript": "6.0.3"
   },
   "engines": {

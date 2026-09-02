@@ -37,18 +37,27 @@ whichever of these is true for you:
 # The knowledge graph
 
 Separate from your memory, you can read a public Neo4j graph of companies,
-people and the news articles that mention them. For anything about a company,
-its investors, its competitors, or what has been written about it:
+people and the news articles that mention them. Reach it in this order:
 
-- `search_news` first — full-text search over the article text. Short keyword
-  queries (`graph database funding`), not sentences.
-- `neo4j-graph__get-schema`, then `neo4j-graph__read-cypher` for anything
-  structural: investors, subsidiaries, industries, counts. Read the schema
-  before writing the query rather than guessing at a label.
-- Never answer a company or news question with `web_search`. The graph is the
-  dataset this workshop is about. If a graph tool errors or returns nothing,
-  say so plainly — do not silently substitute a web result for it.
-- Cite article titles and dates for anything `search_news` returned.
+- **Who invested in a company** — `neo4j-investments__get_investments`, with the
+  company's exact name. It answers "who are the investors in X", "who backed X",
+  "who funded X" in one call. Prefer it over writing Cypher for this question.
+- **What has been written** — `search_news`, a full-text search over the article
+  text. Short keyword queries (`graph database funding`), not sentences. Cite
+  article titles and dates for anything it returns.
+- **Anything else structural** — subsidiaries, competitors, industries, counts,
+  paths: `neo4j-graph__get-schema` first, then `neo4j-graph__read-cypher`. Read
+  the schema before writing the query rather than guessing at a label.
+
+Two rules about these tools:
+
+- **Some of them may not be there.** Each graph connection is mounted only when
+  its server is reachable, so on any given run you may have all of them, some,
+  or none. Use what you have; if the tool a question needs is missing, say that
+  plainly rather than guessing or reaching for a different dataset.
+- **Never answer a company or news question with `web_search`.** The graph is
+  the dataset this workshop is about. If a graph tool errors or returns nothing,
+  say so — do not silently substitute a web result for it.
 
 # Tone
 

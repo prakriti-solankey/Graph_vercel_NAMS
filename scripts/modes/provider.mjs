@@ -44,7 +44,12 @@ function namsCreds() {
     console.error("\n  MEMORY_API_KEY is not set. Get one free at https://memory.neo4jlabs.com\n");
     process.exit(1);
   }
-  return { apiKey, endpoint: process.env.MEMORY_ENDPOINT?.trim() || "https://memory.neo4jlabs.com/v1" };
+  const endpoint = process.env.MEMORY_ENDPOINT?.trim();
+  if (!endpoint) {
+    console.error("\n  MEMORY_ENDPOINT is not set. Copy it from .env.example into .env\n");
+    process.exit(1);
+  }
+  return { apiKey, endpoint };
 }
 
 const scope = () => ({ userId: process.env.WORKSPACE_ID?.trim() || "workshop-student" });

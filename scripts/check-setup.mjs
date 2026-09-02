@@ -70,7 +70,7 @@ if (!(mode in modes)) {
   ok(`MEMORY_MODE=${mode} — ${modes[mode]}`);
 }
 
-const endpoint = process.env.MEMORY_ENDPOINT?.trim() || "https://memory.neo4jlabs.com/v1";
+const endpoint = process.env.MEMORY_ENDPOINT?.trim();
 const memoryKey = process.env.MEMORY_API_KEY?.trim();
 
 if (mode === "off") {
@@ -83,6 +83,15 @@ if (mode === "off") {
   ok("MEMORY_API_KEY is set");
 }
 
+// Endpoints live in .env now, not in the code, so a blank one is a real fault.
+if (mode === "off") {
+  note("MEMORY_ENDPOINT not checked — MEMORY_MODE=off doesn't call it");
+} else if (endpoint) {
+  ok(`MEMORY_ENDPOINT=${endpoint}`);
+} else {
+  bad("MEMORY_ENDPOINT is empty", "Copy the value from .env.example into .env");
+}
+
 const user = process.env.WORKSPACE_ID?.trim();
 if (mode === "off") {
   note("WORKSPACE_ID not checked — MEMORY_MODE=off stores nothing");
@@ -90,6 +99,36 @@ if (mode === "off") {
   ok(`Memories will be filed under workspace id "${user}"`);
 } else {
   bad("WORKSPACE_ID is empty", "Put your own name in .env so you get your own memory");
+}
+
+// ── Graph endpoints ────────────────────────────────────────────────────────
+const boltUri = process.env.NEO4J_URI?.trim();
+if (boltUri) {
+  ok(`NEO4J_URI=${boltUri} — search_news and get_investments read this graph`);
+} else {
+  bad("NEO4J_URI is empty", "Copy the value from .env.example into .env");
+}
+
+for (const [key, label] of [
+  ["NEO4J_USERNAME", "graph login"],
+  ["NEO4J_PASSWORD", "graph password"],
+  ["NEO4J_DATABASE", "graph database"],
+]) {
+  if (!process.env[key]?.trim()) bad(`${key} is empty (${label})`, "Copy it from .env.example into .env");
+}
+
+const mcpUrl = process.env.MCP_URL?.trim();
+if (mcpUrl) {
+  ok(`MCP_URL=${mcpUrl}`);
+} else {
+  note("MCP_URL is empty — the graph MCP tools are off (that is a valid setup)");
+}
+
+const investmentsUrl = process.env.INVESTMENTS_MCP_URL?.trim();
+if (investmentsUrl) {
+  ok(`INVESTMENTS_MCP_URL=${investmentsUrl} — start it with: npm run mcp`);
+} else {
+  note("INVESTMENTS_MCP_URL is empty — the get_investments tool is off");
 }
 
 if (failures === 0) {

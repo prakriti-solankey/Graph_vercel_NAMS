@@ -8,8 +8,8 @@ import {
 
 export type MemoryMode = "provider" | "middleware" | "tools" | "hooks" | "off";
 
-export const MEMORY_ENDPOINT =
-  process.env.MEMORY_ENDPOINT?.trim() || "https://memory.neo4jlabs.com/v1";
+// Set in .env like every other endpoint — nothing is written into the code.
+export const MEMORY_ENDPOINT = process.env.MEMORY_ENDPOINT?.trim() ?? "";
 
 export const MAX_MEMORIES = Number(process.env.MEMORY_MAX_HITS?.trim() || 6);
 
