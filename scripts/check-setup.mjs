@@ -59,12 +59,13 @@ const mode = (process.env.MEMORY_MODE ?? "off").trim().toLowerCase();
 const modes = {
   provider: "createNamsProvider() wrapping the model provider (agent/lib/model.ts)",
   middleware: "createNams().wrap() around one model instance (agent/lib/model.ts)",
-  mcp: "the hosted MCP server, 12 tools discovered at runtime (agent/connections/nams.ts)",
+  tools: "createNamsMemoryTools() — query_memory / store_memory the model calls itself (agent/tools/memory.ts)",
+  hooks: "eve hooks + dynamic instructions — the runtime recalls and stores every turn (agent/hooks/)",
   off: "no memory at all — the 'before' picture",
 };
 
 if (!(mode in modes)) {
-  bad(`MEMORY_MODE="${mode}" isn't valid`, "Use one of: provider, middleware, mcp, off");
+  bad(`MEMORY_MODE="${mode}" isn't valid`, "Use one of: provider, middleware, tools, hooks, off");
 } else {
   ok(`MEMORY_MODE=${mode} — ${modes[mode]}`);
 }

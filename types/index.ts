@@ -1,6 +1,6 @@
-export type MemoryMode = 'provider' | 'middleware' | 'mcp' | 'off';
+export type MemoryMode = 'provider' | 'middleware' | 'tools' | 'hooks' | 'off';
 
-export type MemoryTab = 'recent' | 'observations' | 'insights' | 'entities';
+export type MemoryTab = 'recent' | 'observations' | 'insights' | 'entities' | 'reasoning';
 
 export interface MemoryHit {
   content: string;

@@ -243,7 +243,11 @@ export default function ChatComponent({
                     (part) => part.type === 'reasoning' || part.type === 'dynamic-tool',
                   );
                   const hasPanels =
-                    isLive || hasTrace || snapshot !== undefined || memoryCalls.length > 0;
+                    isLive ||
+                    hasTrace ||
+                    snapshot !== undefined ||
+                    memoryCalls.length > 0 ||
+                    mode !== 'off';
 
                   return (
                     <div key={message.id} className="n-w-full n-flex n-flex-col n-gap-2">
