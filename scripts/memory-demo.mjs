@@ -8,7 +8,7 @@ loadEnv(".env");
 const userId = process.env.WORKSPACE_ID?.trim();
 
 const memory = new MemoryClient({
-  endpoint: process.env.MEMORY_ENDPOINT ?? "https://memory.neo4jlabs.com/v1",
+  endpoint: process.env.MEMORY_ENDPOINT,
   apiKey: process.env.MEMORY_API_KEY,
 });
 

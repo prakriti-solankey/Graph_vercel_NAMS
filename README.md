@@ -35,13 +35,23 @@ The workshop is the comparison: the same agent, wired to the same memory, in
      ▼
   Next.js chat UI  ──────────►  eve agent  ──────────►  the model
   (app/, components/)           (agent/)                (OpenAI)
-                                    │
-                                    │  before answering: what do we know?
-                                    │  after answering:  write it down
-                                    ▼
-                          Neo4j Agent Memory
-                       (a graph of what it knows about you)
+                                  │   │
+        before answering: what do │   │ tools the model can call
+        we know? after answering: │   │
+        write it down             │   └──────────────┐
+                                  ▼                  ▼
+                        Neo4j Agent Memory      the company graph
+                     (what it knows about you)     ├── over MCP
+                                                   │   (mcp-server/, and any
+                                                   │    Neo4j MCP server)
+                                                   └── over Bolt
+                                                       (search_news)
 ```
+
+Two different graphs, and it is worth keeping them apart: **memory** is what the
+agent knows about *you*, reached through NAMS; **the knowledge graph** is a
+public dataset of companies and news, reached over MCP and Bolt. They share a
+database engine and nothing else.
 
 In plain language:
 
@@ -100,6 +110,11 @@ cp .env.example .env
 | `OPENAI_API_KEY` | lets the agent think | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | `MEMORY_API_KEY` | lets the agent remember — **only needed once `MEMORY_MODE` is not `off`** | [memory.neo4jlabs.com](https://memory.neo4jlabs.com) (free, starts with `nams_`) |
 | `WORKSPACE_ID` | to remember the user workspace | [memory.neo4jlabs.com](https://memory.neo4jlabs.com) (workspace_id) |
+| `MEMORY_ENDPOINT` | which NAMS server to call | already filled in by `.env.example` |
+| `NEO4J_URI` + `NEO4J_USERNAME` + `NEO4J_PASSWORD` + `NEO4J_DATABASE` | the company graph `search_news` and `get_investments` read | already filled in by `.env.example` (the public demo graph) |
+
+No endpoint or credential is hardcoded any more — `cp .env.example .env` is what
+gives you working values. See [`docs/mcp-connections.md`](docs/mcp-connections.md).
 
 ### Optional
 
@@ -110,7 +125,14 @@ cp .env.example .env
 | `MODEL_ROUTING` | auto | Force `openai` or `gateway`. Left blank, OpenAI wins when its key is set and no gateway credential is present. |
 | `AGENT_MODEL` | `openai/gpt-5.4-mini` | Which model answers. Try `anthropic/claude-sonnet-5` on the gateway route. |
 | `AGENT_MODEL_CONTEXT_TOKENS` | `400000` | The model's context window. Lower it if you switch to a smaller model. |
-| `MEMORY_ENDPOINT` | `https://memory.neo4jlabs.com/v1` | Point at your own NAMS server. |
+| `MCP_URL` | — | The graph MCP server: local, the hosted demo, or Aura. Blank means the `get-schema` / `read-cypher` tools are off. |
+| `MCP_AUTH` | auto | Force `none`, `basic` or `bearer`. Auto picks from the credentials you set. |
+| `MCP_NEO4J_USERNAME` / `MCP_NEO4J_PASSWORD` | — | Basic auth for `MCP_URL`. The hosted demo takes `companies` / `companies`. |
+| `MCP_BEARER_TOKEN` | — | Bearer token for an Aura MCP instance. |
+| `INVESTMENTS_MCP_URL` | `http://localhost:8100/mcp` in `.env.example` | The local MCP server in `mcp-server/`. Blank means `get_investments` is off. |
+
+Every one of these is explained in [`docs/mcp-connections.md`](docs/mcp-connections.md)
+— which server wants which, and how to tell which is live.
 
 ### Check it
 
@@ -135,6 +157,16 @@ alone, and pressing Enter twice keeps whatever `MEMORY_MODE` is already in
 `.env`. In a non-interactive shell (CI) the prompt is skipped and `.env` wins.
 
 Open <http://localhost:3000>.
+
+For the `get_investments` tool, run the local MCP server alongside it in a
+second terminal:
+
+```bash
+npm run mcp
+```
+
+Both graph connections are optional — the agent starts fine without either and
+just has fewer tools, logging which one it skipped and why.
 
 ---
 
@@ -209,16 +241,25 @@ agent/                       the agent itself
 │   ├── persist-turn.ts      the `hooks` mode, store — runs on turn.completed
 │   └── persist-reasoning.ts the `hooks` mode, the why-trail
 ├── connections/
-│   └── neo4j-graph.ts       the Neo4j knowledge graph, over MCP (mounted only when reachable)
+│   ├── neo4j-graph.ts       the Neo4j knowledge graph, over MCP (mounted only when reachable)
+│   └── neo4j-investments.ts the local MCP server below (mounted only when reachable)
 ├── tools/
 │   ├── memory.ts            the `tools` mode — query_memory / store_memory from the package
+│   ├── calculator.ts        the hands-on exercise — docs/hands-on-tools.md
 │   └── search_news.ts       an example tool that has nothing to do with memory
 └── channels/
     └── eve.ts               who is allowed to talk to the agent
 
+mcp-server/                  a local MCP server of our own — npm run mcp
+├── README.md                its tools, transports and internals
+├── src/server.ts            the MCP protocol: lists tools, routes calls
+└── src/neo4j.ts             the Cypher behind get_investments
+
 app/, components/            the chat UI, built on Neo4j's Needle design system
 scripts/                     npm run check / demo / dev
-docs/                        the long version of everything below
+docs/                        hands-on-tools.md    — add a tool, two ways
+                             mcp-connections.md   — every MCP env var, and how to
+                             point the agent at a local / hosted / Aura server
 ```
 
 **Read `agent/lib/model.ts` first.** Every memory mode passes through it, and it
@@ -232,11 +273,76 @@ public "Company News" graph — the article text the Neo4j MCP connection has no
 tool for — through the Bolt route in
 [`agent/lib/neo4j.ts`](agent/lib/neo4j.ts). Ask *"what's been written about
 graph database funding?"* and watch it appear in the **Reasoning Trace** panel.
-It needs no API key; the defaults point at `demo.neo4jlabs.com`, overridable
-with `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE`.
+It needs no API key. The connection details are not written into the code —
+set `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE` in
+`.env`, which `.env.example` pre-fills with the public `demo.neo4jlabs.com`
+graph. See [`docs/mcp-connections.md`](docs/mcp-connections.md).
 
 Copy it, rename the file, and you have a new tool — that is the whole extension
 story.
+
+**To try that yourself**, [`agent/tools/calculator.ts`](agent/tools/calculator.ts)
+is a deliberately small one to take apart, and
+[`app/api/playground/route.ts`](app/api/playground/route.ts) is the same tool
+written by hand against the AI SDK, with no framework at all — so you can see
+what eve is doing for you. The exercises are in
+[`docs/hands-on-tools.md`](docs/hands-on-tools.md).
+
+### The local MCP server
+
+A tool does not have to live in `agent/tools/`. [`mcp-server/`](mcp-server/) is
+a second way in: a small MCP server of our own, built following Neo4j's
+[TypeScript MCP tutorial](https://neo4j.com/labs/agent-memory/tutorials/mcp-server-typescript/),
+exposing one tool — `get_investments`, which returns the investors recorded
+against a company.
+
+```bash
+npm run mcp     # http://localhost:8100/mcp
+npm run dev     # in another terminal
+```
+
+Then ask *"who are the investors in Neo4j?"*.
+
+The server speaks two transports from the same code:
+
+| | how | who dials it |
+| --- | --- | --- |
+| Streamable HTTP | `npm run mcp` (default) | this agent, via `agent/connections/neo4j-investments.ts` |
+| stdio | `MCP_TRANSPORT=stdio npm run mcp` | Claude Desktop and other stdio MCP clients |
+
+HTTP is the default because an eve MCP connection dials a URL — it has no stdio
+transport. The tutorial's stdio mode is kept for Claude Desktop, which does:
+
+```json
+{
+  "mcpServers": {
+    "neo4j-investments": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/mcp-server/src/server.ts"],
+      "env": { "MCP_TRANSPORT": "stdio" }
+    }
+  }
+}
+```
+
+Like `neo4j-graph.ts`, the connection is skipped when nothing answers at its
+URL, so forgetting `npm run mcp` costs you the tool, not the session.
+
+**Word the description the way people ask.** The model does not see connection
+tools up front; it finds them through `connection_search`, which scores a tool
+by token overlap with the question (tool name ×3, description ×1, substring
+match either way). `get_investments` described only as returning *investments*
+scored **zero** against "who are the investors in Neo4j" — `investments` and
+`investors` are not substrings of one another — so the tool never reached the
+model and the answer came back as "I couldn't retrieve the investor list". The
+description now carries *investors*, *invested*, *backers*, and *funding*. If
+you add a tool here, spend a minute on the nouns your users will actually type. Which
+server the *other* connection dials — local, the hosted demo, or an Aura
+instance — and every environment variable behind that choice is written up in
+[`docs/mcp-connections.md`](docs/mcp-connections.md). The model
+sees it namespaced by connection, as `neo4j-investments__get_investments` —
+that is the name to assert on in an eval, as
+[`evals/graph/investments.eval.ts`](evals/graph/investments.eval.ts) does.
 
 ---
 
@@ -278,12 +384,14 @@ workshop, made visible.
 ## Evals
 
 `npm run eval` starts a throwaway agent and drives it like a user, then asserts
-on what it produced. Two cases live in [`evals/`](evals/):
+on what it produced. Four cases live in [`evals/`](evals/):
 
 | Eval | What it pins down |
 |---|---|
 | [`memory/cross-session-recall`](evals/memory/cross-session-recall.eval.ts) | **the load-bearing one.** States a fact, calls `t.newSession()` to throw the transcript away, and asks again in a fresh session. Anything recalled after that came out of NAMS, not the conversation. Skips itself when `MEMORY_MODE=off`. |
 | [`graph/news-search`](evals/graph/news-search.eval.ts) | a company question reaches `search_news` rather than being answered from model recall or a web search. |
+| [`tools/calculator`](evals/tools/calculator.eval.ts) | the hands-on tool in `agent/tools/` is reached for arithmetic, and gets the sum right. Your check after doing [the exercise](docs/hands-on-tools.md). |
+| [`graph/investments`](evals/graph/investments.eval.ts) | *"Who are the investors in Neo4j"* — asked plainly, with no hint of a tool name — reaches `neo4j-investments__get_investments` on the local MCP server. Needs `npm run mcp` running. |
 
 ```bash
 npm run eval                       # everything
@@ -301,6 +409,11 @@ Two notes if you write more:
 - **Retrieval is lexical.** A shared workshop workspace fills with near-identical
   turns, so assert on a distinctive word (the eval uses a project *codename*),
   not a phrase like "final year project" that every earlier run also contains.
+- **Ask the way a user would.** Naming the tool in the prompt makes an eval pass
+  for the wrong reason: it was a hint like *"use the investments tool"* that hid
+  a real tool-discovery bug until the prompt was changed to the plain question.
+- **MCP tools are namespaced** `<connection>__<tool>`, so assert on
+  `neo4j-investments__get_investments`, not `get_investments`.
 - The judge model comes from [`evals/evals.config.ts`](evals/evals.config.ts);
   override it with `EVAL_JUDGE_MODEL`.
 
@@ -313,6 +426,7 @@ Two notes if you write more:
 | `npm run check` | verify your keys and setup |
 | `npm run demo` | memory on its own, twenty lines, no agent |
 | `npm run dev` | the chat app at localhost:3000 |
+| `npm run mcp` | the local MCP server in `mcp-server/`, which serves `get_investments` |
 | `npm run chat` | the same agent in your terminal, no browser |
 | `npm run eval` | run the evals (see below) |
 | `npm run typecheck` | catch mistakes before running |
@@ -327,5 +441,14 @@ agent and the same memory in your terminal for a fraction of that.
 ## Reference
 
 - [eve docs](https://eve.dev/docs) · [AI SDK](https://ai-sdk.dev) · [Neo4j Agent Memory docs](https://neo4j.com/labs/agent-memory/)
+- [`docs/hands-on-tools.md`](docs/hands-on-tools.md) — add a tool, the eve way and by hand
+- [AI SDK v5 migration](https://ai-sdk.dev/docs/migration-guides) — this repo is on `ai@7`; older tutorials use `parameters` and `maxSteps`
 - [`@neo4j-labs/nams-ai-provider`](https://www.npmjs.com/package/@neo4j-labs/nams-ai-provider) — every non-`off` mode is built on this one package
 - [`@neo4j-labs/agent-memory`](https://www.npmjs.com/package/@neo4j-labs/agent-memory) — the client underneath it
+
+**MCP**
+
+- [`docs/mcp-connections.md`](docs/mcp-connections.md) — every MCP environment variable, and how to point the agent at a local, hosted or Aura server
+- [`mcp-server/README.md`](mcp-server/README.md) — the MCP server built in this repo
+- [Model Context Protocol](https://modelcontextprotocol.io) · [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Neo4j's TypeScript MCP server tutorial](https://neo4j.com/labs/agent-memory/tutorials/mcp-server-typescript/) — what `mcp-server/` is built from
